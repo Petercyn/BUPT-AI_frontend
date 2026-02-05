@@ -5,11 +5,11 @@ import { Select } from "@/components/ui/select";
 
 const departments = [
   { label: "Select department", value: "" },
-  { label: "Computer Science", value: "cs" },
-  { label: "Software Engineering", value: "se" },
-  { label: "Information Technology", value: "it" },
-  { label: "Accounting", value: "acc" },
-  { label: "Nursing Science", value: "nur" },
+  { label: "Computer Science", value: "CS" },
+  { label: "Software Engineering", value: "SE" },
+  { label: "Information Technology", value: "IT" },
+  { label: "Accounting", value: "ACC" },
+  { label: "Nursing Science", value: "NUR" },
 ];
 
 const coursesByDepartment: Record<string, { label: string; value: string }[]> =
