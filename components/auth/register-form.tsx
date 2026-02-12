@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { api } from "@/lib/api";
 
 interface FieldErrors {
   lastName?: string;
@@ -31,7 +32,7 @@ export function RegisterForm() {
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<FieldErrors>({});
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
@@ -74,16 +75,31 @@ export function RegisterForm() {
 
     if (Object.keys(nextErrors).length > 0) return;
 
-    setLoading(true);
-
-    window.setTimeout(() => {
-      setLoading(false);
-      toast.success("Account created successfully (mock).", {
-        description:
-          "Your profile will be saved once the backend is connected.",
+    try {
+      setLoading(true);
+      const res = await api.auth.register({
+        lastname: data.lastName,
+        firstname: data.firstName,
+        middlename: data.middleName,
+        matricNumber: data.matricNumber,
+        schoolEmail: data.email,
+        password: data.password
       });
-      router.push("/login");
-    }, 1100);
+
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('user', JSON.stringify(res));
+
+      toast.success("Account created successfully.", {
+        description: "Welcome to VisionTutor.",
+      });
+      router.push("/onboarding");
+    } catch (error: any) {
+      toast.error("Registration failed", {
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
