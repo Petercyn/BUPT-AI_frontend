@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { QuestionCard } from "./question-card";
+import { api } from "@/lib/api";
 
 type StudyMode = "visual" | "audio" | "text";
 type ReaderType = "day" | "night" | "both";
@@ -19,6 +20,10 @@ interface OnboardingState {
   breakDuration: string;
   dailyHours: string;
   readerType: ReaderType | "";
+  school: string;
+  department: string;
+  level: string;
+  courses: string[];
 }
 
 export function OnboardingForm() {
@@ -32,6 +37,10 @@ export function OnboardingForm() {
     breakDuration: "",
     dailyHours: "",
     readerType: "",
+    school: "",
+    department: "",
+    level: "",
+    courses: [],
   });
 
   const completion =
@@ -47,18 +56,31 @@ export function OnboardingForm() {
       7) *
     100;
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
 
-    window.setTimeout(() => {
-      setSaving(false);
-      toast.success("Preferences saved (mock).", {
-        description:
-          "Your tutor will now adapt sessions to your reading habit.",
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error("Not authenticated");
+        router.push("/login");
+        return;
+      }
+
+      await api.onboarding.update(state, token);
+
+      toast.success("Preferences saved.", {
+        description: "Your tutor will now adapt sessions to your reading habit.",
       });
       router.push("/dashboard");
-    }, 900);
+    } catch (error: any) {
+      toast.error("Failed to save preferences", {
+        description: error.message,
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -152,11 +174,10 @@ export function OnboardingForm() {
         >
           <button
             type="button"
-            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${
-              state.audioOrText === "audio"
-                ? "border-primary bg-primary-soft text-primary"
-                : "border-border bg-white text-muted-foreground hover:bg-muted"
-            }`}
+            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${state.audioOrText === "audio"
+              ? "border-primary bg-primary-soft text-primary"
+              : "border-border bg-white text-muted-foreground hover:bg-muted"
+              }`}
             onClick={() =>
               setState((prev) => ({ ...prev, audioOrText: "audio" }))
             }
@@ -165,11 +186,10 @@ export function OnboardingForm() {
           </button>
           <button
             type="button"
-            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${
-              state.audioOrText === "text"
-                ? "border-primary bg-primary-soft text-primary"
-                : "border-border bg-white text-muted-foreground hover:bg-muted"
-            }`}
+            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${state.audioOrText === "text"
+              ? "border-primary bg-primary-soft text-primary"
+              : "border-border bg-white text-muted-foreground hover:bg-muted"
+              }`}
             onClick={() =>
               setState((prev) => ({ ...prev, audioOrText: "text" }))
             }
@@ -226,11 +246,10 @@ export function OnboardingForm() {
         >
           <button
             type="button"
-            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${
-              state.readerType === "day"
-                ? "border-primary bg-primary-soft text-primary"
-                : "border-border bg-white text-muted-foreground hover:bg-muted"
-            }`}
+            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${state.readerType === "day"
+              ? "border-primary bg-primary-soft text-primary"
+              : "border-border bg-white text-muted-foreground hover:bg-muted"
+              }`}
             onClick={() =>
               setState((prev) => ({ ...prev, readerType: "day" }))
             }
@@ -239,11 +258,10 @@ export function OnboardingForm() {
           </button>
           <button
             type="button"
-            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${
-              state.readerType === "night"
-                ? "border-primary bg-primary-soft text-primary"
-                : "border-border bg-white text-muted-foreground hover:bg-muted"
-            }`}
+            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${state.readerType === "night"
+              ? "border-primary bg-primary-soft text-primary"
+              : "border-border bg-white text-muted-foreground hover:bg-muted"
+              }`}
             onClick={() =>
               setState((prev) => ({ ...prev, readerType: "night" }))
             }
@@ -252,17 +270,93 @@ export function OnboardingForm() {
           </button>
           <button
             type="button"
-            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${
-              state.readerType === "both"
-                ? "border-primary bg-primary-soft text-primary"
-                : "border-border bg-white text-muted-foreground hover:bg-muted"
-            }`}
+            className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition ${state.readerType === "both"
+              ? "border-primary bg-primary-soft text-primary"
+              : "border-border bg-white text-muted-foreground hover:bg-muted"
+              }`}
             onClick={() =>
               setState((prev) => ({ ...prev, readerType: "both" }))
             }
           >
             It depends on my schedule
           </button>
+        </QuestionCard>
+
+        <QuestionCard
+          title="Academic Information"
+          description="Select your course details to get relevant study materials."
+        >
+          <div className="space-y-4">
+            <Select
+              label="School"
+              name="school"
+              value={state.school}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, school: event.target.value }))
+              }
+              options={[
+                { label: "Select School", value: "" },
+                { label: "School of Computing", value: "School of Computing" },
+              ]}
+            />
+            <Select
+              label="Department"
+              name="department"
+              value={state.department}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, department: event.target.value }))
+              }
+              options={[
+                { label: "Select Department", value: "" },
+                { label: "Software Engineering", value: "Software Engineering" },
+                { label: "Computer Science", value: "Computer Science" },
+                { label: "Information Technology", value: "Information Technology" },
+                { label: "Computer Information System", value: "Computer Information System" },
+              ]}
+            />
+            <Select
+              label="Level"
+              name="level"
+              value={state.level}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, level: event.target.value }))
+              }
+              options={[
+                { label: "Select Level", value: "" },
+                { label: "100", value: "100" },
+                { label: "200", value: "200" },
+                { label: "300", value: "300" },
+                { label: "400", value: "400" },
+                { label: "500", value: "500" },
+                { label: "600", value: "600" },
+              ]}
+            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Select Courses
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {["Artificial Intelligence", "Modelling and Simulation", "Database"].map((course) => (
+                  <button
+                    key={course}
+                    type="button"
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${state.courses.includes(course)
+                      ? "border-primary bg-primary-soft text-primary"
+                      : "border-border bg-white text-muted-foreground hover:bg-muted"
+                      }`}
+                    onClick={() => {
+                      const newCourses = state.courses.includes(course)
+                        ? state.courses.filter((c) => c !== course)
+                        : [...state.courses, course];
+                      setState((prev) => ({ ...prev, courses: newCourses }));
+                    }}
+                  >
+                    {course}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </QuestionCard>
       </div>
 
