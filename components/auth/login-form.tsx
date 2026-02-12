@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { api } from "@/lib/api";
 
 interface FieldErrors {
   email?: string;
@@ -16,7 +17,7 @@ export function LoginForm() {
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<FieldErrors>({});
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
@@ -32,16 +33,32 @@ export function LoginForm() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setLoading(true);
-
-    window.setTimeout(() => {
-      setLoading(false);
-      toast.success("Welcome back (mock login).", {
-        description:
-          "We will use your answers to personalize your reading habit.",
+    try {
+      setLoading(true);
+      const res = await api.auth.login({
+        matricNumber: data.email, // backend expects matric number but frontend input name is email... wait, label says "School email". Backend expects matricNumber.
+        password: data.password
       });
-      router.push("/onboarding");
-    }, 900);
+
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('user', JSON.stringify(res));
+
+      toast.success("Welcome back.", {
+        description: "We will use your answers to personalize your reading habit.",
+      });
+
+      if (res.isOnboarded) {
+        router.push("/dashboard");
+      } else {
+        router.push("/onboarding");
+      }
+    } catch (error: any) {
+      toast.error("Login failed", {
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
